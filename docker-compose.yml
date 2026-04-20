@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # OLLAMA - Moteur de modèles LLM
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_PARALLEL=2
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 32G
+        reservations:
+          memory: 8G
+
+  # ============================================
+  # OPEN WEBUI - Interface web principale
+  # ============================================
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    depends_on:
+      - ollama
+      - searxng
+    volumes:
+      - ./data/open-webui:/app/backend/data
+    ports:
+      - "3000:8080"
+    environment:
+      # Configuration Ollama
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_BASE_URL=http://ollama:11434/api
+      
+      # Configuration WebUI
+      - WEBUI_AUTH=true
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - WEBUI_URL=http://localhost:3000
+      
+      # Sécurité
+      - ENABLE_SIGNUP=true
+      - ENABLE_COMMUNITY_SHARING=false
+      
+      # Configuration recherche web avec SearXNG
+      - ENABLE_WEB_SEARCH=true
+      - WEB_SEARCH_ENGINE=searxng
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>&format=json
+      
+      # CORS (développement uniquement)
+      - CORS_ALLOW_ORIGIN=http://localhost:3000
+      
+      # Rate limiting
+      - RATE_LIMIT=100
+      - RATE_LIMIT_WINDOW=60
+
+      # === CONFIGURATION RAG COMPLÈTE (AJOUTEZ CECI) ===
+      - RAG_EMBEDDING_MODEL=nomic-embed-text:latest
+      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=true
+      - RAG_EMBEDDING_BATCH_SIZE=1
+      - RAG_EMBEDDING_BATCH_TIMEOUT=60
+      - RAG_CHUNK_SIZE=500
+      - RAG_CHUNK_OVERLAP=50
+      - RAG_TOP_K=5
+      - RAG_HYBRID_SEARCH=true
+      - RAG_FULL_CONTEXT_MODE=false
+      - RAG_TEMPLATE=Respond to the user query using the provided context, incorporating inline citations in the format [id] only when the source tag includes an explicit id attribute.
+      
+      # Forcer l'utilisation d'Ollama pour les embeddings
+      - RAG_EMBEDDING_ENGINE=ollama
+      - OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - searxng-data:/etc/searxng
+    ports:
+      - "8888:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY}
+    networks:
+      - ai-network
+
+volumes:
+  searxng-data:
+    driver: local
+
+# ============================================
+# RÉSEAUX
+# ============================================
+networks:
+  ai-network:
+    driver: bridge
+    name: ai-network

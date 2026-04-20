@@ -1,0 +1,54 @@
+# Paramètres généraux
+use_default_settings: true
+
+server:
+  secret_key: "g7k2L9mR4qW8xZ5nP3jH6tY1uC0vB9aF4dS8eK2lN5"  # Changez cette clé
+  limiter: false
+  public_instance: false
+  bind_address: "0.0.0.0"
+  port: 8080
+
+search:
+  formats:
+    - html
+    - json
+  safe_search: 0
+  autocomplete: google
+  default_lang: fr
+
+# Résolveurs DOI (important pour éviter l'erreur 500)
+doi_resolvers:
+  oadoi.org: "https://oadoi.org/"
+  doi.org: "https://doi.org/"
+default_doi_resolver: "oadoi.org"
+
+# Moteurs activés
+engines:
+  - name: duckduckgo
+    use: true
+    categories: general
+    timeout: 5.0
+    
+  - name: google
+    use: true
+    categories: general
+    timeout: 5.0
+    
+  - name: bing
+    use: true
+    categories: general
+    timeout: 5.0
+    
+  - name: wikipedia
+    use: true
+    categories: general
+    timeout: 5.0
+    shortcut: wp
+    language: fr
+
+# Interface
+ui:
+  default_locale: fr
+  default_theme: simple
+  theme_args:
+    simple_style: auto
