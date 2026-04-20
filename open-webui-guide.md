@@ -446,82 +446,7 @@ def get_current_datetime(timezone: str = "Europe/Paris") -> str:
 
 ---
 
-## 10. Sécurisation pour la production
-
-### Reverse proxy Nginx minimal
-
-```nginx
-server {
-    listen 80;
-    server_name open-webui.exemple.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name open-webui.exemple.com;
-
-    ssl_certificate     /etc/letsencrypt/live/open-webui.exemple.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/open-webui.exemple.com/privkey.pem;
-
-    location / {
-        proxy_pass         http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header   Upgrade $http_upgrade;
-        proxy_set_header   Connection "upgrade";
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_read_timeout 300s;  # important pour le streaming
-    }
-}
-```
-
-### Certificat SSL avec Certbot
-
-```bash
-certbot --nginx -d open-webui.exemple.com
-```
-
-### Checklist sécurité
-
-- [ ] HTTPS activé (Nginx + Let's Encrypt)
-- [ ] `WEBUI_AUTH=true` dans les variables d'environnement
-- [ ] `ENABLE_SIGNUP=false` (inscription publique désactivée)
-- [ ] Clé JWT forte (`WEBUI_SECRET_KEY`)
-- [ ] Clés API dans variables d'env, jamais en dur
-- [ ] Backup quotidien du volume Docker
-- [ ] Port 8080 non exposé publiquement (uniquement via Nginx)
-- [ ] Mises à jour régulières (suivre les releases GitHub)
-
----
-
-## 11. Comparatif & choix de solution
-
-> **Slide de référence :** Slide 9
-
-| Critère | Open WebUI | LibreChat | AnythingLLM | ChatGPT.com |
-|---------|-----------|-----------|-------------|-------------|
-| Open-source | ✅ MIT | ✅ MIT | ✅ MIT | ❌ |
-| Self-hosted | ✅ Docker 1 cmd | ✅ (complexe) | ✅ | ❌ |
-| RAG intégré | ✅ Avancé | ✅ Basique | ✅ Avancé | ✅ Limité |
-| Plugins | ✅ Python natif | ✅ Oui | ⚠️ Limité | ✅ GPTs |
-| Multi-modèles | ✅ Tous | ✅ Tous | ✅ Tous | ⚠️ OpenAI |
-| Multimodal | ✅ Vision | ✅ Vision | ⚠️ Partiel | ✅ Oui |
-| Mobile | ⚠️ PWA | ⚠️ PWA | ❌ | ✅ App native |
-| Données souveraines | ✅✅ | ✅✅ | ✅✅ | ❌ |
-| Coût | Gratuit | Gratuit | Gratuit | 20$/mois (GPT-4) |
-
-### Quand choisir Open WebUI
-
-- ✅ Données confidentielles (santé, juridique, RH, finance)
-- ✅ Conformité RGPD / HIPAA / NIS2
-- ✅ Équipe technique capable de gérer l'infra
-- ✅ Besoin de personnalisation poussée (plugins, pipelines)
-- ✅ Budget limité avec besoin d'une UI professionnelle
-
----
-
-## 12. Ressources
+## 10. Ressources
 
 | Ressource | URL |
 |-----------|-----|
@@ -556,7 +481,3 @@ docker run --rm \
   -v $(pwd):/backup \
   alpine tar czf /backup/open-webui-backup-$(date +%Y%m%d).tar.gz /data
 ```
-
----
-
-*Présentation réalisée dans le cadre du cours — branche `prenom-nom/open-webui-use-cases`*
