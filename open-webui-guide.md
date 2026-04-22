@@ -317,11 +317,35 @@ Le RAG (Retrieval-Augmented Generation) permet au modèle de répondre en s'appu
 Exemple de prompt RAG :
 
 ```
-En te basant uniquement sur les documents fournis, explique :
-1. Quelle est la procédure décrite pour X ?
-2. Quelles sont les contraintes mentionnées ?
-3. Y a-t-il des exceptions ou cas particuliers ?
-Cite les sources pour chaque point.
+Tu es un assistant technique spécialisé dans l'intégration d'APIs de paiement.
+
+En te basant UNIQUEMENT sur la documentation Stripe fournie dans la base de connaissances, réponds aux questions suivantes :
+
+1. Quel endpoint utiliser pour créer un paiement unique ? Donne l'URL complète et la méthode HTTP.
+2. Quels sont les paramètres OBLIGATOIRES du body pour cet appel ?
+3. Quel objet est retourné en cas de succès ? Cite les champs principaux avec leur type.
+4. Quels codes d'erreur peuvent survenir et que signifient-ils ?
+5. Comment l'authentification est-elle gérée ? (type, header, format)
+
+⚠️ Pour chaque réponse, indique le nom de la section source dans la documentation.
+Si une information est absente des documents, réponds explicitement : "Non trouvé dans la documentation fournie."
+```
+
+Fallback:
+
+```
+Tu es un assistant technique spécialisé dans l'automatisation via l'API GitHub.
+
+En te basant UNIQUEMENT sur la documentation GitHub fournie dans la base de connaissances, réponds aux questions suivantes :
+
+1. Quel endpoint permet de créer une Pull Request ? Donne l'URL exacte et la méthode HTTP.
+2. Quels paramètres sont obligatoires dans le body de la requête ?
+3. Quels scopes OAuth sont nécessaires pour effectuer cet appel ?
+4. Quelle est la structure de l'objet retourné ? Cite au moins 5 champs clés.
+5. Comment gérer la pagination si la liste de PRs dépasse 100 résultats ?
+
+⚠️ Pour chaque réponse, cite la section source dans la documentation.
+Si une information est absente des documents, réponds explicitement : "Non trouvé dans la documentation fournie."
 ```
 
 **Points à montrer :**
@@ -364,6 +388,42 @@ Tu réponds en français, de façon structurée avec des titres markdown.
 ```
    - Attacher une **Knowledge Base** de documents juridiques
 3. Sauvegarder → l'assistant apparaît dans le sélecteur de modèle
+
+```
+Recherche dans la base de connaissances le contrat de type "Acceptance of Delivery" et réponds aux questions suivantes :
+
+1. 📋 Objet du contrat
+   Quel est l'objectif principal de ce contrat ? Quelles sont les parties impliquées ?
+
+2. ⚠️ Clauses à risque
+   Identifie les clauses potentiellement défavorables pour le destinataire (receiver).
+   Pour chaque clause : cite le texte exact, explique le risque concret et propose une reformulation plus équilibrée.
+
+3. 🔍 Conditions d'acceptation
+   Quels sont les critères exacts qui déclenchent l'acceptation de la livraison ?
+   Y a-t-il des délais imposés ? Sont-ils raisonnables ?
+
+4. ❌ Points manquants
+   Quelles clauses de protection importantes sont absentes ?
+   (ex : recours en cas de livraison partielle, pénalités, force majeure)
+
+5. ✅ Synthèse
+   Ce contrat est-il équilibré entre les deux parties ? Justifie en 3 points.
+
+⚠️ Pour chaque réponse, cite la section exacte du document source.
+```
+
+Fallback:
+
+```
+1. À qui appartient la propriété intellectuelle créée pendant la relation contractuelle ?
+2. Y a-t-il une clause de cession des droits ? Est-elle limitée dans le temps ou illimitée ?
+3. Que se passe-t-il en cas de résiliation du contrat — les droits IP sont-ils restitués ?
+4. Y a-t-il des exceptions ou des droits réservés à l'une des parties ?
+5. Cette clause est-elle standard ou particulièrement agressive ?
+
+⚠️ Cite la section source pour chaque réponse.
+```
 
 ### 10.5 Plugins & outils intégrés
 
@@ -422,17 +482,6 @@ def get_current_datetime(timezone: str = "Europe/Paris") -> str:
 - Llama 3.3 70B → **~45 Go RAM** ou GPU 40 Go VRAM
 - Latence élevée en CPU-only : **2–5 tokens/sec**
 
-### Sécurité & production
-
-- Reverse proxy HTTPS **obligatoire** (Nginx / Caddy)
-- Secrets API à externaliser (Vault, variables d'environnement)
-- Audit logging limité sans plugin supplémentaire
-
-### Limites fonctionnelles
-
-- Pas d'app mobile native (PWA uniquement)
-- RAG limité sur très grands corpus (>100k documents)
-- Mises à jour fréquentes → breaking changes possibles
 
 ---
 
