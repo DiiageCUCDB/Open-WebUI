@@ -1,26 +1,19 @@
 # Open WebUI — Guide d'installation & Suivi de présentation
 
-> **Branche Git :** `prenom-nom/open-webui-use-cases`  
-> **Structure :** `docs/` · `schema/` · `slides/` · `demo/`
-
----
-
 ## Table des matières
 
 1. [Prérequis](#1-prérequis)
 2. [Installation rapide (Docker)](#2-installation-rapide-docker)
 3. [Installation alternative (pip)](#3-installation-alternative-pip)
 4. [Installation avancée (Helm / Kubernetes)](#4-installation-avancée-helm--kubernetes)
-5. [Premier démarrage & configuration](#5-premier-démarrage--configuration)
-6. [Installer et choisir un modèle](#6-installer-et-choisir-un-modèle)
-7. [Démonstration — Génération, Résumé, Q&A](#7-démonstration--génération-résumé-qa)
-8. [Démonstration — RAG (base de connaissances)](#8-démonstration--rag-base-de-connaissances)
-9. [Fonctionnalités avancées](#9-fonctionnalités-avancées)
-10. [Sécurisation pour la production](#10-sécurisation-pour-la-production)
-11. [Comparatif & choix de solution](#11-comparatif--choix-de-solution)
+5. [Architecture](#5-architecture)
+6. [Premier démarrage & configuration](#6-premier-démarrage--configuration)
+7. [Installer et choisir un modèle](#7-installer-et-choisir-un-modèle)
+8. [Démonstration — Génération, Résumé, Q&A](#8-démonstration--génération-résumé-qa)
+9. [Démonstration — RAG (base de connaissances)](#9-démonstration--rag-base-de-connaissances)
+10. [Fonctionnalités avancées](#10-fonctionnalités-avancées)
+11. [Limites & points de vigilance](#11-limites--points-de-vigilance)
 12. [Ressources](#12-ressources)
-
----
 
 ## 1. Prérequis
 
@@ -28,7 +21,7 @@
 |-----------|---------|------------|
 | **RAM** | 8 Go | 16 Go+ |
 | **CPU** | 4 cœurs | 8 cœurs |
-| **GPU** | Optionnel | NVIDIA (CUDA) / Apple Silicon (Metal) |
+| **GPU** | Optionnel | NVIDIA (CUDA) / Apple Silicon (Metal) / AMD (ROCm) |
 | **Stockage** | 10 Go libres | 50 Go+ (modèles) |
 | **OS** | Linux, macOS, Windows (WSL2) | Ubuntu 22.04 LTS |
 | **Docker** | ≥ 24.0 | dernière version |
@@ -51,8 +44,6 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama --version
 ollama serve   # démarre le serveur (port 11434)
 ```
-
----
 
 ## 2. Installation rapide (Docker)
 
@@ -133,8 +124,6 @@ docker stop open-webui && docker rm open-webui
 # relancer la commande docker run ci-dessus
 ```
 
----
-
 ## 3. Installation alternative (pip)
 
 ```bash
@@ -154,8 +143,6 @@ open-webui serve
 
 > **Note :** Nécessite Python 3.11+. Ollama doit tourner séparément (`ollama serve`).
 
----
-
 ## 4. Installation avancée (Helm / Kubernetes)
 
 ```bash
@@ -167,35 +154,27 @@ helm repo update
 helm install open-webui open-webui/open-webui \
   --namespace open-webui \
   --create-namespace
-
-# Personnaliser (exemple values.yaml)
-helm install open-webui open-webui/open-webui \
-  --namespace open-webui \
-  -f values.yaml
 ```
 
-Exemple `values.yaml` minimal :
+## 5. Architecture
 
-```yaml
-replicaCount: 2
+> **Slide de référence :** Slide 4
 
-ingress:
-  enabled: true
-  host: "open-webui.exemple.com"
-  tls:
-    enabled: true
+Open WebUI est structuré en couches découplées :
 
-ollama:
-  enabled: true
+| Couche | Technologie | Rôle |
+|--------|-------------|------|
+| **Frontend** | SvelteKit / PWA | Interface conversationnelle, markdown, code highlight |
+| **Backend** | FastAPI (Python) | WebSockets, Auth, RBAC, API REST |
+| **Stockage** | SQLite / PostgreSQL + ChromaDB | Données applicatives + index vectoriel RAG |
+| **Moteurs LLM** | Ollama, OpenAI, Anthropic, Azure, Groq… | Inférence locale ou distante |
+| **Middleware** | Pipelines Python | Filtres, transformations, intégrations custom |
 
-persistence:
-  enabled: true
-  size: 10Gi
-```
+La communication navigateur ↔ backend s'effectue en HTTP/WebSockets. Le backend expose une API REST unifiée vers tous les moteurs LLM, qu'ils soient locaux (Ollama) ou cloud.
 
 ---
 
-## 5. Premier démarrage & configuration
+## 6. Premier démarrage & configuration
 
 ### Étapes initiales
 
@@ -203,41 +182,11 @@ persistence:
 2. Cliquer **"Sign up"** → le **premier compte créé devient admin**
 3. Renseigner : nom, email, mot de passe
 
-### Configuration admin essentielle
-
-Accéder au **Admin Panel** (icône en bas à gauche) :
-
-| Section | Paramètre | Valeur recommandée |
-|---------|-----------|-------------------|
-| General | Default Model | llama3.2:3b |
-| General | Enable Community Sharing | Off (prod) |
-| Users | Default User Role | pending (prod) |
-| Connections | Ollama API URL | http://localhost:11434 |
-| Documents | Embedding Model | nomic-embed-text |
-
-### Variables d'environnement utiles
-
-```bash
-# Désactiver l'inscription publique
-ENABLE_SIGNUP=false
-
-# Forcer l'authentification
-WEBUI_AUTH=true
-
-# URL publique (si reverse proxy)
-WEBUI_URL=https://open-webui.exemple.com
-
-# Clé secrète JWT (générer avec openssl rand -hex 32)
-WEBUI_SECRET_KEY=votre_clé_secrète_très_longue
-
-# Activer OpenAI
-OPENAI_API_KEY=sk-...
-OPENAI_API_BASE_URL=https://api.openai.com/v1
-```
-
 ---
 
-## 6. Installer et choisir un modèle
+## 7. Installer et choisir un modèle
+
+> **Slide de référence :** Slide 5
 
 ### Via l'interface (recommandé)
 
@@ -248,14 +197,24 @@ OPENAI_API_BASE_URL=https://api.openai.com/v1
 ### Via la ligne de commande
 
 ```bash
-# Modèles recommandés par cas d'usage
-ollama pull llama3.2:3b          # Chat général léger (2 Go)
-ollama pull llama3.3:70b         # Chat général qualité (45 Go)
-ollama pull deepseek-r1:7b       # Raisonnement / maths
-ollama pull deepseek-coder-v2    # Code
-ollama pull nomic-embed-text     # Embeddings pour RAG (obligatoire)
-ollama pull llava:13b            # Vision (analyse d'images)
-ollama pull phi4                 # Petit modèle très performant (Microsoft)
+# === CHAT GÉNÉRAL ===
+ollama pull llama3.2:3b          # Chat général léger (~2 Go) ← point de départ conseillé
+ollama pull llama3.3:70b         # Chat général qualité production (~45 Go)
+ollama pull mistral:7b           # Équilibré qualité/performance (~4.1 Go)
+ollama pull gemma3:9b            # Modèle Google récent (~5.5 Go)
+ollama pull phi4:latest          # Très performant, léger — Microsoft (~2.5 Go)
+ollama pull qwen2.5:7b           # Modèle performant (~4.4 Go)
+
+# === CODE & RAISONNEMENT ===
+ollama pull deepseek-coder-v2    # Code spécialisé (~6.7 Go)
+ollama pull deepseek-r1:7b       # Raisonnement avancé / maths (~4.5 Go)
+ollama pull codellama:7b         # Code — Meta (~3.8 Go)
+
+# === RAG (obligatoire pour les knowledge bases) ===
+ollama pull nomic-embed-text     # Embeddings — léger et efficace (~274 Mo)
+
+# === VISION ===
+ollama pull llava:13b            # Analyse d'images (~7.5 Go)
 
 # Lister les modèles installés
 ollama list
@@ -268,19 +227,25 @@ ollama run llama3.2:3b "Bonjour, tu es capable de quoi ?"
 
 | RAM disponible | Modèle conseillé | Taille |
 |----------------|------------------|--------|
-| 4 Go | phi4:3.8b, qwen2.5:3b | ~2-3 Go |
-| 8 Go | llama3.2:3b, mistral:7b | ~4-5 Go |
-| 16 Go | llama3.1:8b, gemma3:9b | ~8-10 Go |
-| 32 Go | llama3.3:70b-q4_K_M | ~25 Go |
-| 64 Go+ | llama3.3:70b (fp16) | ~45 Go |
+| 4 Go | `phi4:latest`, `qwen2.5:3b` | ~2–3 Go |
+| 8 Go | `llama3.2:3b`, `mistral:7b` | ~2–4 Go |
+| 16 Go | `llama3.1:8b`, `gemma3:9b` | ~8–10 Go |
+| 32 Go | `llama3.3:70b-q4_K_M` | ~25 Go |
+| 64 Go+ | `llama3.3:70b` (fp16) | ~45 Go |
+
+> 💡 Commencer avec `llama3.2:3b` pour tester, passer ensuite à `llama3.3:70b-q4_K_M`. Toujours installer `nomic-embed-text` si vous utilisez le RAG.
+
+### APIs Cloud configurables
+
+En plus des modèles locaux, Open WebUI supporte directement : OpenAI GPT-4o / o1 / o3, Anthropic Claude 3.5 Sonnet / Opus, Google Gemini 2.0 Flash, Mistral API, Groq, Together AI et toute API compatible OpenAI.
 
 ---
 
-## 7. Démonstration — Génération, Résumé, Q&A
+## 8. Démonstration — Génération, Résumé, Q&A
 
 > **Slide de référence :** Slide 6
 
-### 7.1 Génération de contenu
+### 8.1 Génération de contenu
 
 Essayez ce prompt dans un nouveau chat :
 
@@ -290,13 +255,7 @@ Contexte : réunion de revue sprint avec l'équipe dev, reportée pour cause de 
 Ton : formel, bienveillant. Longueur : 3 paragraphes maximum. Langue : français.
 ```
 
-**Points à montrer :**
-- Streaming en temps réel (les tokens arrivent au fur et à mesure)
-- Bouton **"Copy"** pour copier la réponse
-- Bouton **"Regenerate"** pour une nouvelle version
-- Changer de modèle dans le sélecteur en haut et comparer
-
-### 7.2 Résumé de document
+### 8.2 Résumé de document
 
 1. Cliquer l'icône **trombone** (📎) dans la barre de saisie
 2. Uploader un PDF (article, rapport, présentation)
@@ -307,7 +266,9 @@ Résume ce document en exactement 5 points clés, chacun sur une ligne.
 Format : "• Point clé : explication courte (1 phrase)"
 ```
 
-### 7.3 Q&A technique
+**Autres cas :** synthèse de longues réunions, extraction des points clés, rapport de veille automatique.
+
+### 8.3 Q&A technique
 
 ```
 Tu es un expert Python senior. Explique la différence entre @staticmethod et @classmethod.
@@ -318,7 +279,7 @@ Fournis :
 4. Le cas d'usage idéal pour choisir l'un ou l'autre
 ```
 
-### 7.4 Génération de code
+### 8.4 Génération de code
 
 ```
 Écris une fonction Python qui :
@@ -330,9 +291,11 @@ Fournis :
 
 ---
 
-## 8. Démonstration — RAG (base de connaissances)
+## 9. Démonstration — RAG (base de connaissances)
 
 > **Slide de référence :** Slide 7
+
+Le RAG (Retrieval-Augmented Generation) permet au modèle de répondre en s'appuyant sur vos propres documents. Le flux est : **Document → Chunking & Indexing → Recherche Sémantique → LLM + Contexte → Réponse fondée**.
 
 ### Étape 1 : Créer une Knowledge Base
 
@@ -341,17 +304,10 @@ Fournis :
 3. Cliquer **"Add Content"** → uploader un ou plusieurs fichiers
 
 **Formats supportés :** PDF, DOCX, TXT, MD, CSV, XLSX
-**Ou ajouter une URL :** coller une URL de page web → elle est crawlée automatiquement
+**Ou ajouter une URL :** la page est crawlée automatiquement
+**Autres sources :** YouTube (transcription automatique), Google Drive, Notion
 
-### Étape 2 : Configurer les embeddings (une seule fois)
-
-Admin Panel → **Documents** :
-- **Embedding Model :** `nomic-embed-text` (local, gratuit)
-- **Chunk Size :** 1000 tokens
-- **Chunk Overlap :** 100 tokens
-- **Top K :** 5
-
-### Étape 3 : Utiliser le RAG en chat
+### Étape 2 : Utiliser le RAG en chat
 
 ```
 # Dans la barre de saisie, taper # pour sélectionner la knowledge base
@@ -369,17 +325,30 @@ Cite les sources pour chaque point.
 ```
 
 **Points à montrer :**
-- Les **sources citées** apparaissent sous la réponse (cliquer pour voir le chunk)
+- Les **sources citées** apparaissent sous la réponse (cliquer pour voir le chunk exact)
 - Comparer une réponse **avec** et **sans** RAG activé
-- Montrer que le modèle dit "Je ne sais pas" si l'info n'est pas dans les docs
+- Montrer que le modèle répond "Je ne sais pas" si l'info n'est pas dans les docs
+- Le reranking (CrossEncoder) améliore la pertinence des chunks sélectionnés
 
 ---
 
-## 9. Fonctionnalités avancées
+## 10. Fonctionnalités avancées
 
 > **Slide de référence :** Slide 8
 
-### 9.1 Créer un assistant personnalisé (Model)
+### 10.1 Gestion des conversations
+
+Historique persistant avec tags, dossiers et export JSON/MD. Partage par lien. Conversations épinglées.
+
+### 10.2 Multi-utilisateurs & RBAC
+
+Comptes locaux ou OAuth/LDAP/SSO. Rôles Admin/User avec contrôle d'accès par modèle et par groupe.
+
+### 10.3 Personnalisation UI
+
+Thèmes clair/sombre, personas (system prompts), prompts partagés, banners admin.
+
+### 10.4 Créer un assistant personnalisé (Model)
 
 1. **Workspace** → **Models** → **"+"**
 2. Renseigner :
@@ -396,20 +365,28 @@ Tu réponds en français, de façon structurée avec des titres markdown.
    - Attacher une **Knowledge Base** de documents juridiques
 3. Sauvegarder → l'assistant apparaît dans le sélecteur de modèle
 
-### 9.2 Activer la recherche web
+### 10.5 Plugins & outils intégrés
 
-1. Admin Panel → **Settings** → **Web Search**
-2. Choisir le moteur : **SearXNG** (auto-hébergé) ou **DuckDuckGo**
+| Type | Description |
+|------|-------------|
+| **Fonctions Python** | Outils, filtres, actions en Python pur |
+| **Outils Web** | Recherche (SearXNG, Google PSE, Brave), météo, calculatrice |
+| **Code Interpreter** | Exécution Python sandbox in-chat |
+| **Vision / Multimodal** | Analyse d'images, OCR, graphiques |
+| **Text-to-Speech** | ElevenLabs, OpenAI TTS, Kokoro (local) |
+| **Web Search** | SearXNG auto-hébergé, Google PSE, Brave Search |
+
+### 10.6 Activer la recherche web
+
 3. Dans un chat, activer l'icône 🌐 dans la barre de saisie
 
 ```
-[Avec recherche web activée]
 Quelles sont les dernières nouveautés d'Open WebUI publiées cette semaine ?
 ```
 
-### 9.3 Ajouter une fonction Python
+### 10.7 Ajouter une fonction Python
 
-1. **Workspace** → **Functions** → **"+"**
+1. **Workspace** → **Tools** → **"+"**
 2. Coller cette fonction exemple :
 
 ```python
@@ -433,20 +410,33 @@ def get_current_datetime(timezone: str = "Europe/Paris") -> str:
 
 3. Activer la fonction → elle devient disponible comme outil dans les chats
 
-### 9.4 Raccourcis clavier utiles
+---
 
-| Raccourci | Action |
-|-----------|--------|
-| `Ctrl + Shift + N` | Nouvelle conversation |
-| `/` dans la barre | Accès aux prompts partagés |
-| `#` dans la barre | Sélectionner une knowledge base |
-| `@` dans la barre | Mentionner un modèle spécifique |
-| `Ctrl + Enter` | Envoyer le message |
-| `Escape` | Arrêter la génération |
+## 11. Limites & points de vigilance
+
+> **Slide de référence :** Slide 10
+
+### Ressources matérielles
+
+- LLM 7B+ nécessitent **16 Go RAM minimum**
+- Llama 3.3 70B → **~45 Go RAM** ou GPU 40 Go VRAM
+- Latence élevée en CPU-only : **2–5 tokens/sec**
+
+### Sécurité & production
+
+- Reverse proxy HTTPS **obligatoire** (Nginx / Caddy)
+- Secrets API à externaliser (Vault, variables d'environnement)
+- Audit logging limité sans plugin supplémentaire
+
+### Limites fonctionnelles
+
+- Pas d'app mobile native (PWA uniquement)
+- RAG limité sur très grands corpus (>100k documents)
+- Mises à jour fréquentes → breaking changes possibles
 
 ---
 
-## 10. Ressources
+## 12. Ressources
 
 | Ressource | URL |
 |-----------|-----|
@@ -454,20 +444,20 @@ def get_current_datetime(timezone: str = "Europe/Paris") -> str:
 | 🐙 GitHub | https://github.com/open-webui/open-webui |
 | 🔧 Fonctions & plugins | https://openwebui.com/functions |
 | 🦙 Bibliothèque Ollama | https://ollama.com/library |
+| 🚀 Releases & changelog | https://github.com/open-webui/open-webui/releases |
 | 💬 Discord communauté | https://discord.gg/5rJgQTnV4s |
-| 🐦 Mises à jour | https://github.com/open-webui/open-webui/releases |
 
 ### Commandes de diagnostic utiles
 
 ```bash
 # Vérifier que les conteneurs tournent
-docker ps
+docker compose ps
 
 # Logs Open WebUI
-docker logs open-webui -f
+docker compose logs -f open-webui
 
 # Logs Ollama
-docker logs ollama -f
+docker compose logs -f ollama
 
 # Espace disque utilisé par les volumes
 docker system df -v

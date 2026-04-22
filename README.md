@@ -1,18 +1,6 @@
-# 🦙 Open WebUI Stack
+# Open WebUI Stack
 
 > Interface web IA locale, souveraine et extensible — propulsée par Ollama, SearXNG et Docker.
-
----
-
-## ✨ Ce que vous obtenez
-
-| Service | Rôle | Port |
-|---------|------|------|
-| **Open WebUI** | Interface de chat IA (type ChatGPT) | `3000` |
-| **Ollama** | Moteur de modèles LLM local | `11434` |
-| **SearXNG** | Moteur de recherche web auto-hébergé | `8888` |
-
----
 
 ## ⚡ Démarrage rapide
 
@@ -23,7 +11,7 @@ docker --version        # ≥ 24.0
 docker compose version  # v2+
 ```
 
-> **RAM recommandée :** 8 Go minimum, 16 Go+ pour les grands modèles.
+> **RAM recommandée :** 8 Go minimum, 16 Go+ pour les grands modèles. GPU optionnel (CUDA / Metal / ROCm).
 
 ### 2. Cloner & configurer
 
@@ -51,11 +39,11 @@ chmod +x scripts/init-models.sh
 
 ### 5. Ouvrir l'interface
 
-👉 **http://localhost:3000** — le premier compte créé devient administrateur.
+=> **http://localhost:3000** — le premier compte créé devient administrateur.
 
 ---
 
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 open-webui-demo/
@@ -76,7 +64,7 @@ open-webui-demo/
 
 ## 🧠 Choisir un modèle
 
-### Recommandations par RAM disponible
+### Modèles locaux via Ollama
 
 | RAM dispo | Modèle conseillé | Taille |
 |-----------|------------------|--------|
@@ -103,17 +91,35 @@ ollama pull llava:13b
 
 L'installateur interactif `./scripts/init-models.sh` propose des **packs prédéfinis** (basic, standard, advanced, rag, code) et une sélection personnalisée.
 
----
+### APIs Cloud supportées
 
-## 📚 Fonctionnalités clés
+- OpenAI GPT-4o, o1, o3
+- Anthropic Claude 3.5 Sonnet / Opus
+- Google Gemini 2.0 Flash
+- Mistral API, Groq, Together et toute API compatible OpenAI
+
+## Fonctionnalités clés
 
 ### RAG — Base de connaissances
 
 1. **Workspace → Knowledge → `+`** pour créer une base documentaire
-2. Importer vos fichiers : PDF, DOCX, TXT, MD, CSV, XLSX
+2. Importer vos fichiers : PDF, DOCX, TXT, MD, CSV, XLSX — ou coller une URL (crawl automatique)
 3. Dans le chat, taper `#` pour sélectionner la base et poser des questions ciblées
 
+**Sources supportées :** PDF, DOCX, TXT, MD, URLs, YouTube (transcription auto), Google Drive, Notion.
+
+**Moteurs vectoriels :** ChromaDB (défaut, embarqué), Milvus, Qdrant, OpenSearch, PGVector, Pinecone, Weaviate.
+
 > Configurez le modèle d'embedding dans **Admin Panel → Documents** : `nomic-embed-text`.
+
+**Paramètres RAG configurés dans le stack :**
+
+| Paramètre | Valeur |
+|-----------|--------|
+| Chunk size | 500 tokens |
+| Chunk overlap | 50 tokens |
+| Top-k | 5 |
+| Hybrid search | BM25 + dense |
 
 ### Assistants personnalisés
 
@@ -123,23 +129,43 @@ Créez des modèles avec un **system prompt** dédié, une knowledge base attach
 
 Activez l'icône 🌐 dans la barre de saisie pour enrichir les réponses avec des résultats SearXNG en temps réel.
 
-### Fonctions Python
+### Fonctions & Plugins Python
 
-Ajoutez des outils métier dans **Workspace → Functions** (exemple inclus : `scripts/demo-functions.py`).
+Ajoutez des outils métier dans **Workspace → Functions** (exemple inclus : `scripts/demo-functions.py`). Supporte aussi : exécution de code Python sandbox, vision/multimodal, Text-to-Speech (ElevenLabs, OpenAI TTS, Kokoro local).
+
+### Gestion multi-utilisateurs
+
+Comptes locaux ou OAuth/LDAP/SSO. Rôles Admin/User avec contrôle par modèle et par groupe (RBAC).
 
 ### Raccourcis utiles
 
 | Raccourci | Action |
 |-----------|--------|
+| `Ctrl+Shift+N` | Nouvelle conversation |
 | `/` | Accès aux prompts partagés |
 | `#` | Sélectionner une knowledge base |
 | `@` | Mentionner un modèle |
 | `Ctrl+Enter` | Envoyer |
 | `Escape` | Stopper la génération |
 
----
+## ⚠️ Limites & points de vigilance
 
-## 🛠️ Commandes utiles
+**Ressources matérielles**
+- LLM 7B+ nécessitent 16 Go RAM minimum
+- Llama 3.3 70B → ~45 Go RAM ou GPU 40 Go VRAM
+- Latence élevée en CPU-only : 2–5 tokens/sec
+
+**Sécurité & production**
+- Reverse proxy HTTPS obligatoire (Nginx / Caddy)
+- Secrets API à externaliser (Vault, variables d'environnement)
+- Audit logging limité sans plugin supplémentaire
+
+**Limites fonctionnelles**
+- Pas d'app mobile native (PWA uniquement)
+- RAG limité sur très grands corpus (>100k documents)
+- Mises à jour fréquentes → breaking changes possibles
+
+## Commandes utiles
 
 ```bash
 # Statut des services
@@ -164,12 +190,11 @@ docker run --rm \
 # Mise à jour de l'image
 docker compose pull && docker compose up -d
 ```
-
----
-
-## 📖 Ressources
+## Ressources
 
 - [Documentation officielle](https://docs.openwebui.com)
 - [GitHub Open WebUI](https://github.com/open-webui/open-webui)
 - [Bibliothèque de modèles Ollama](https://ollama.com/library)
 - [Fonctions & plugins communautaires](https://openwebui.com/functions)
+- [Releases & changelog](https://github.com/open-webui/open-webui/releases)
+- [Discord communauté](https://discord.gg/5rJgQTnV4s)
