@@ -1,2 +1,4 @@
 data/ollama/
 data/open-webui
+.venv/
+__pycache__/
